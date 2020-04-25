@@ -131,8 +131,8 @@ function startGUI () {
     var gui = new dat.GUI({ width: 300 });
     gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(initFramebuffers);
     gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(initFramebuffers);
-    gui.add(config, 'DENSITY_DISSIPATION', 0, 20.0).name('density diffusion');
-    gui.add(config, 'VELOCITY_DISSIPATION', 0, 20.0).name('velocity diffusion');
+    gui.add(config, 'DENSITY_DECAY', 0, 20.0).name('density decay');
+    gui.add(config, 'VELOCITY_DECAY', 0, 20.0).name('velocity decay');
     gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
     gui.add(config, 'CURL', 0, 50).name('curl').step(1);
     gui.add(config, 'RADIUS', 0.001, 0.2).name('radius');
@@ -435,7 +435,7 @@ function update () {
     if (resizeCanvas())
         { initFramebuffers(); }
 
-    cyclone(0.5,0.5,[config.R,config.G,config.B],config.DIRECTION,config.DIFUSSION,config.RADIUS,config.CYCLE,config.DENSITY,t);
+    cyclone(0.5,0.5,[config.R,config.G,config.B],config.DIRECTION,config.DIFUSSION,config.RADIUS,config.CYCLE,config.VORTICITY,t);
 
     t += config.VELOCITY;
     step(dt);
@@ -526,7 +526,7 @@ function step (dt) {
     gl.uniform1i(advectionProgram.uniforms.uVelocity, velocityId);
     gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
     gl.uniform1f(advectionProgram.uniforms.dt, dt);
-    gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
+    gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DECAY);
     blit(velocity.write.fbo);
     velocity.swap();
 
@@ -536,7 +536,7 @@ function step (dt) {
         { gl.uniform2f(advectionProgram.uniforms.dyeTexelSize, dye.texelSizeX, dye.texelSizeY); }
     gl.uniform1i(advectionProgram.uniforms.uVelocity, velocity.read.attach(0));
     gl.uniform1i(advectionProgram.uniforms.uSource, dye.read.attach(1));
-    gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION);
+    gl.uniform1f(advectionProgram.uniforms.dissipation, config.DENSITY_DECAY);
     blit(dye.write.fbo);
     dye.swap();
 }
