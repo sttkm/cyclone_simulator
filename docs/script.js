@@ -235,7 +235,6 @@ function addKeywords (source, keywords) {
 var baseVertexShader = compileShader(gl.VERTEX_SHADER, baseVertexShaderSource);
 var copyShader = compileShader(gl.FRAGMENT_SHADER,copyShaderSource);
 var clearShader = compileShader(gl.FRAGMENT_SHADER,clearShaderSource);
-var colorShader = compileShader(gl.FRAGMENT_SHADER,colorShaderSource);
 var splatShader = compileShader(gl.FRAGMENT_SHADER,splatShaderSource);
 var cycloneShader = compileShader(gl.FRAGMENT_SHADER,cycloneShaderSource);
 var advectionShader = compileShader(gl.FRAGMENT_SHADER,advectionShaderSource, ext.supportLinearFiltering ? null : ['MANUAL_FILTERING']);
