@@ -21,8 +21,8 @@ var config = {
     VORTICITY: 1,
     SHADING: true,
     R: 0.15,
-    G: 0.85,
-    B: 0.75,
+    G: 0.75,
+    B: 0.85,
     BACK_COLOR: { r: 0, g: 0, b: 0 },
 }
 
