@@ -8,8 +8,8 @@ resizeCanvas();
 var config = {
     SIM_RESOLUTION: 256,
     DYE_RESOLUTION: 1024,
-    DENSITY_DISSIPATION: 1.3,
-    VELOCITY_DISSIPATION: 1.0,
+    DENSITY_DECAY: 1.5,
+    VELOCITY_DECAY: 1.5,
     PRESSURE: 0.985,
     PRESSURE_ITERATIONS: 1,
     CURL: 5,
@@ -18,7 +18,7 @@ var config = {
     DIRECTION: 1.0,
     RADIUS: 0.035,
     CYCLE: 65,
-    DENSITY: 1,
+    VORTICITY: 1,
     SHADING: true,
     R: 0.15,
     G: 0.85,
@@ -131,16 +131,16 @@ function startGUI () {
     var gui = new dat.GUI({ width: 300 });
     gui.add(config, 'DYE_RESOLUTION', { 'high': 1024, 'medium': 512, 'low': 256, 'very low': 128 }).name('quality').onFinishChange(initFramebuffers);
     gui.add(config, 'SIM_RESOLUTION', { '32': 32, '64': 64, '128': 128, '256': 256 }).name('sim resolution').onFinishChange(initFramebuffers);
-    gui.add(config, 'DENSITY_DISSIPATION', 0, 4.0).name('density diffusion');
-    gui.add(config, 'VELOCITY_DISSIPATION', 0, 4.0).name('velocity diffusion');
+    gui.add(config, 'DENSITY_DISSIPATION', 0, 20.0).name('density diffusion');
+    gui.add(config, 'VELOCITY_DISSIPATION', 0, 20.0).name('velocity diffusion');
     gui.add(config, 'PRESSURE', 0.0, 1.0).name('pressure');
-    gui.add(config, 'CURL', 0, 50).name('vorticity').step(1);
+    gui.add(config, 'CURL', 0, 50).name('curl').step(1);
     gui.add(config, 'RADIUS', 0.001, 0.2).name('radius');
     gui.add(config, 'VELOCITY', 0.01, 1.0).name('velocity')
     gui.add(config, 'DIFUSSION', 1.0, 50.0).name('diffusion');
     gui.add(config, 'DIRECTION', -1.0, 1.0).name('direction').step(1);
     gui.add(config, 'CYCLE', 10, 500).name('cycle');
-    gui.add(config, 'DENSITY', 1, 12).name('density').step(1);
+    gui.add(config, 'VORTICITY', 1, 12).name('vorticity').step(1);
     gui.add(config, 'R', 0.0, 1.0).name('red');
     gui.add(config, 'G', 0.0, 1.0).name('green');
     gui.add(config, 'B', 0.0, 1.0).name('blue');
@@ -266,7 +266,6 @@ var pressure;
 
 var copyProgram            = new Program(baseVertexShader, copyShader);
 var clearProgram           = new Program(baseVertexShader, clearShader);
-var colorProgram           = new Program(baseVertexShader, colorShader);
 var splatProgram           = new Program(baseVertexShader, splatShader);
 var cycloneProgram         = new Program(baseVertexShader, cycloneShader);
 var advectionProgram       = new Program(baseVertexShader, advectionShader);
@@ -424,12 +423,6 @@ function updateKeywords () {
     displayMaterial.setKeywords(displayKeywords);
 }
 
-
-
-
-
-
-
 updateKeywords();
 initFramebuffers();
 
@@ -442,7 +435,6 @@ function update () {
     var dt = calcDeltaTime();
     if (resizeCanvas())
         { initFramebuffers(); }
-    // applyInputs();
 
     cyclone(0.5,0.5,[config.R,config.G,config.B],config.DIRECTION,config.DIFUSSION,config.RADIUS,config.CYCLE,config.DENSITY,t);
 
@@ -451,13 +443,6 @@ function update () {
     render(null);
     requestAnimationFrame(update);
 }
-
-
-
-
-
-
-
 
 function calcDeltaTime () {
     var now = Date.now();
@@ -606,35 +591,6 @@ function cyclone (center_x,center_y,color,direction,diffusion,radius,cycle,densi
     dye.swap();
 }
 
-function correctRadius (radius) {
-    var aspectRatio = canvas.width / canvas.height;
-    if (aspectRatio > 1)
-        { radius *= aspectRatio; }
-    return radius;
-}
-
-function correctDeltaX (delta) {
-    var aspectRatio = canvas.width / canvas.height;
-    if (aspectRatio < 1) { delta *= aspectRatio; }
-    return delta;
-}
-
-function correctDeltaY (delta) {
-    var aspectRatio = canvas.width / canvas.height;
-    if (aspectRatio > 1) { delta /= aspectRatio; }
-    return delta;
-}
-
-function generateColor () {
-    // var c = HSVtoRGB(Math.random(), 1.0, 1.0);
-    var c = HSVtoRGB(color_i/20, 1.0, 1.0);
-    c.r *= 0.15;
-    c.g *= 0.15;
-    c.b *= 0.15;
-    color_i = (color_i+1)%20
-    return c;
-}
-
 function HSVtoRGB (h, s, v) {
     var r, g, b, i, f, p, q, t;
     i = Math.floor(h * 6);
@@ -657,21 +613,6 @@ function HSVtoRGB (h, s, v) {
         g: g,
         b: b
     };
-}
-
-function normalizeColor (input) {
-    var output = {
-        r: input.r / 255,
-        g: input.g / 255,
-        b: input.b / 255
-    };
-    return output;
-}
-
-function wrap (value, min, max) {
-    var range = max - min;
-    if (range == 0) { return min; }
-    return (value - min) % range + min;
 }
 
 function getResolution (resolution) {

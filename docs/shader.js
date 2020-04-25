@@ -17,37 +17,6 @@ var baseVertexShaderSource = `
   }
 `;
 
-var blurVertexShaderSource = `
-  precision highp float;
-  attribute vec2 aPosition;
-  varying vec2 vUv;
-  varying vec2 vL;
-  varying vec2 vR;
-  uniform vec2 texelSize;
-  void main () {
-    vUv = aPosition * 0.5 + 0.5;
-    float offset = 1.33333333;
-    vL = vUv - texelSize * offset;
-    vR = vUv + texelSize * offset;
-    gl_Position = vec4(aPosition, 0.0, 1.0);
-  }
-`;
-
-var blurShaderSource = `
-  precision mediump float;
-  precision mediump sampler2D;
-  varying vec2 vUv;
-  varying vec2 vL;
-  varying vec2 vR;
-  uniform sampler2D uTexture;
-  void main () {
-    vec4 sum = texture2D(uTexture, vUv) * 0.29411764;
-    sum += texture2D(uTexture, vL) * 0.35294117;
-    sum += texture2D(uTexture, vR) * 0.35294117;
-    gl_FragColor = sum;
-  }
-`;
-
 var copyShaderSource = `
   precision mediump float;
   precision mediump sampler2D;
@@ -66,29 +35,6 @@ var clearShaderSource = `
   uniform float value;
   void main () {
     gl_FragColor = value * texture2D(uTexture, vUv);
-  }
-`;
-
-var colorShaderSource = `
-  precision mediump float;
-  uniform vec4 color;
-  void main () {
-    gl_FragColor = color;
-  }
-`;
-
-var checkerboardShaderSource = `
-  precision highp float;
-  precision highp sampler2D;
-  varying vec2 vUv;
-  uniform sampler2D uTexture;
-  uniform float aspectRatio;
-  #define SCALE 25.0
-  void main () {
-    vec2 uv = floor(vUv * SCALE * vec2(aspectRatio, 1.0));
-    float v = mod(uv.x + uv.y, 2.0);
-    v = v * 0.1 + 0.8;
-    gl_FragColor = vec4(vec3(v), 1.0);
   }
 `;
 
@@ -146,101 +92,6 @@ var displayShaderSource = `
   }
 `;
 
-var bloomPrefilterShaderSource =`
-  precision mediump float;
-  precision mediump sampler2D;
-  varying vec2 vUv;
-  uniform sampler2D uTexture;
-  uniform vec3 curve;
-  uniform float threshold;
-  void main () {
-    vec3 c = texture2D(uTexture, vUv).rgb;
-    float br = max(c.r, max(c.g, c.b));
-    float rq = clamp(br - curve.x, 0.0, curve.y);
-    rq = curve.z * rq * rq;
-    c *= max(rq, br - threshold) / max(br, 0.0001);
-    gl_FragColor = vec4(c, 0.0);
-  }
-`;
-
-var bloomBlurShaderSource = `
-  precision mediump float;
-  precision mediump sampler2D;
-  varying vec2 vL;
-  varying vec2 vR;
-  varying vec2 vT;
-  varying vec2 vB;
-  uniform sampler2D uTexture;
-  void main () {
-    vec4 sum = vec4(0.0);
-    sum += texture2D(uTexture, vL);
-    sum += texture2D(uTexture, vR);
-    sum += texture2D(uTexture, vT);
-    sum += texture2D(uTexture, vB);
-    sum *= 0.25;
-    gl_FragColor = sum;
-  }
-`;
-
-var bloomFinalShaderSource = `
-  precision mediump float;
-  precision mediump sampler2D;
-  varying vec2 vL;
-  varying vec2 vR;
-  varying vec2 vT;
-  varying vec2 vB;
-  uniform sampler2D uTexture;
-  uniform float intensity;
-  void main () {
-    vec4 sum = vec4(0.0);
-    sum += texture2D(uTexture, vL);
-    sum += texture2D(uTexture, vR);
-    sum += texture2D(uTexture, vT);
-    sum += texture2D(uTexture, vB);
-    sum *= 0.25;
-    gl_FragColor = sum * intensity;
-  }
-`;
-
-var sunraysMaskShaderSource = `
-  precision highp float;
-  precision highp sampler2D;
-  varying vec2 vUv;
-  uniform sampler2D uTexture;
-  void main () {
-    vec4 c = texture2D(uTexture, vUv);
-    float br = max(c.r, max(c.g, c.b));
-    c.a = 1.0 - min(max(br * 20.0, 0.0), 0.8);
-    gl_FragColor = c;
-  }
-`;
-
-var sunraysShaderSource = `
-  precision highp float;
-  precision highp sampler2D;
-  varying vec2 vUv;
-  uniform sampler2D uTexture;
-  uniform float weight;
-  #define ITERATIONS 16
-  void main () {
-    float Density = 0.3;
-    float Decay = 0.95;
-    float Exposure = 0.7;
-    vec2 coord = vUv;
-    vec2 dir = vUv - 0.5;
-    dir *= 1.0 / float(ITERATIONS) * Density;
-    float illuminationDecay = 1.0;
-    float color = texture2D(uTexture, vUv).a;
-    for (int i = 0; i < ITERATIONS; i++) {
-      coord -= dir;
-      float col = texture2D(uTexture, coord).a;
-      color += col * illuminationDecay * weight;
-      illuminationDecay *= Decay;
-    }
-    gl_FragColor = vec4(color * Exposure, 0.0, 0.0, 1.0);
-  }
-`;
-
 var splatShaderSource = `
   precision highp float;
   precision highp sampler2D;
@@ -261,7 +112,7 @@ var splatShaderSource = `
     float dist = sqrt(dot(p,p));
     float rad = atan(p.y,p.x)+PI;
     float bias = exp(-dist*dist/radius);
-    float wave = sin(exp(-dist)*cycle + direction*rad*density +t)*0.5+0.5;
+    float wave = sin(exp(-dist)*cycle + direction*rad*density-t)*0.5+0.5;
     vec3 base = texture2D(uTarget, vUv).xyz;
     gl_FragColor = vec4(base+bias*bias*wave*color/20.0,1.0);
   }
@@ -286,7 +137,7 @@ var cycloneShaderSource = `
     float dist = sqrt(dot(p,p));
     float rad = atan(p.y,p.x);
     float bias = exp(-pow(dist,3.0)/radius);
-    float wave = sin(exp(-dist)*cycle + direction*rad*density +t)*0.5+0.5;
+    float wave = sin(exp(-dist)*cycle + direction*rad*density-t)*0.5+0.5;
     vec2 vector1 = vec2(p.y,-p.x)/dist;
     vec2 vector2 = p/dist;
     vec2 base = texture2D(uVelocity,vUv).xy;
